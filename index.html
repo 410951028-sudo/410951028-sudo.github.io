@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>骰子挑戰遊戲</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #f2f2f2; }
+    h1 { margin: 10px 0; }
+    .dice-container { display: flex; justify-content: center; margin: 20px 0; }
+    .dice { width: 60px; height: 60px; margin: 0 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: bold; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); cursor: pointer; }
+    .status { margin: 20px; font-size: 18px; }
+    .buttons { margin: 20px; }
+    button { font-size: 16px; padding: 10px 20px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { opacity: 0.9; }
+    .roll { background: #4caf50; color: white; }
+    .reset { background: #f44336; color: white; }
+    .highlight { background: #ffecb3; }
+    .container { display: flex; justify-content: center; margin: 20px; gap: 40px; position: relative; }
+    .inventory, .sum-area { margin: 20px auto; padding: 10px; background: #fff; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: 200px; }
+    .inventory h3, .sum-area h3 { margin-top: 0; }
+    .inventory-list, .sum-list { display: flex; flex-wrap: wrap; justify-content: center; }
+    .inv-item, .sum-item { margin: 5px; padding: 8px 12px; background: #e0f7fa; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .inv-item:hover, .sum-item:hover { background: #b2ebf2; }
+    #settleBtn { display: none; background: #ff9800; color: white; font-size: 20px; padding: 15px 30px; border-radius: 8px; margin-top: 20px; }
+    #submitBtn { background: #f44336; color: white; font-size: 16px; padding: 10px 20px; border-radius: 6px; margin: 0 auto; display: block; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>第十一代骰子挑戰遊戲 🎲</h1>
+
+  <div class="dice-container">
+    <div id="dice1" class="dice">?</div>
+    <div id="dice2" class="dice">?</div>
+    <div id="dice3" class="dice">?</div>
+  </div>
+
+  <div class="buttons">
+    <button class="roll" onclick="rollDice()">擲骰</button>
+    <p>已擲骰次數：<span id="rollCount">0</span> / 30</p>
+    <button class="reset" onclick="resetGame()">重設遊戲</button>
+  </div>
+
+  <div class="container">
+    <div class="inventory">
+      <h3>庫存區 (上限 9 個數字)</h3>
+      <div id="inventoryList" class="inventory-list"></div>
+    </div>
+
+    <button id="submitBtn" class="reset" onclick="submitSum()">提交加總</button>
+
+    <div class="sum-area">
+      <h3>加總區</h3>
+      <div id="sumList" class="sum-list"></div>
+      <p>目前加總：<span id="currentSum">0</span></p>
+      <p>分數總計：<span id="scoreTotal">0</span></p>
+      <p>合計為0次數：<span id="zeroCount">0</span> / 6</p>
+    </div>
+  </div>
+
+  <div class="status">
+    <p id="message"></p>
+  </div>
+
+  <button id="settleBtn" onclick="settleGame()">結算</button>
+
+  <script>
+    let diceValues = [0, 0, 0];
+    let inventory = [];
+    const maxInventory = 9;
+    let currentSum = 0;
+    let sumItems = [];
+    let scoreTotal = 0;
+    let zeroCount = 0;
+    let rollCount = 0;
+    const maxRolls = 30;
+
+    function rollDice() {
+      if (rollCount >= maxRolls) return;
+      if (inventory.length >= maxInventory) {
+        alert('庫存已滿，無法繼續擲骰，請使用庫存數字。');
+        return;
+      }
+
+      diceValues[0] = Math.floor(Math.random() * 6) + 1;
+      diceValues[1] = Math.floor(Math.random() * 6) + 1;
+      diceValues[2] = -(Math.floor(Math.random() * 6) + 1);
+
+      for (let val of diceValues) {
+        if (inventory.length < maxInventory) inventory.push(val);
+      }
+
+      updateInventory();
+      rollCount++;
+      document.getElementById('rollCount').textContent = rollCount;
+
+      if (rollCount >= maxRolls) document.getElementById('settleBtn').style.display = 'inline-block';
+    }
+
+    function updateInventory() {
+      const invList = document.getElementById('inventoryList');
+      invList.innerHTML = '';
+      inventory.forEach((val, idx) => {
+        const item = document.createElement('div');
+        item.className = 'inv-item';
+        item.textContent = val;
+        item.onclick = () => addToSum(idx);
+        invList.appendChild(item);
+      });
+    }
+
+    function addToSum(idx) {
+      currentSum += inventory[idx];
+      sumItems.push(inventory[idx]);
+      inventory.splice(idx, 1);
+      updateInventory();
+      updateSumArea();
+    }
+
+    function sumItemClick(idx) {
+      inventory.push(sumItems[idx]);
+      sumItems.splice(idx, 1);
+      currentSum = sumItems.reduce((a,b)=>a+b,0);
+      updateInventory();
+      updateSumArea();
+    }
+
+    function updateSumArea() {
+      const sumListDiv = document.getElementById('sumList');
+      sumListDiv.innerHTML = '';
+      sumItems.forEach((val, idx) => {
+        const item = document.createElement('div');
+        item.className = 'sum-item';
+        item.textContent = val;
+        item.onclick = () => sumItemClick(idx);
+        sumListDiv.appendChild(item);
+      });
+      document.getElementById('currentSum').textContent = currentSum;
+    }
+
+    function submitSum() {
+      if (currentSum === 0) {
+        zeroCount++;
+        document.getElementById('zeroCount').textContent = zeroCount;
+        document.getElementById('message').textContent = '💡 加總為0，計入一次！';
+      } else if (currentSum % 5 === 0) {
+        scoreTotal += currentSum;
+        document.getElementById('scoreTotal').textContent = scoreTotal;
+        document.getElementById('message').textContent = `成功加總 ${currentSum} 至分數總計!`;
+      } else {
+        alert('加總必須是 5 的倍數或 0 才能計分');
+      }
+
+      currentSum = 0;
+      sumItems = [];
+      updateSumArea();
+
+      if (inventory.length === 0) {
+        const choice = confirm('超強！成功清空！\n(「確認」+ 5 分；「取消」合計為0 + 1 )');
+        if (choice) {
+          scoreTotal += 5;
+          document.getElementById('scoreTotal').textContent = scoreTotal;
+        } else {
+          zeroCount++;
+          document.getElementById('zeroCount').textContent = zeroCount;
+        }
+      }
+    }
+
+    function settleGame() {
+      const winFromScore = Math.floor(scoreTotal / 50);
+      const winFromZero = Math.floor(zeroCount / 6);
+      const totalWins = winFromScore + winFromZero;
+      alert(`結算完成！\n總分: ${scoreTotal}\n合計為0次數: ${zeroCount}\n可算達成勝利條件次數: ${totalWins}`);
+    }
+
+    function resetGame() {
+      diceValues = [0,0,0];
+      inventory = [];
+      currentSum = 0;
+      sumItems = [];
+      scoreTotal = 0;
+      zeroCount = 0;
+      rollCount = 0;
+      document.getElementById('rollCount').textContent = rollCount;
+      document.getElementById('currentSum').textContent = currentSum;
+      document.getElementById('scoreTotal').textContent = scoreTotal;
+      document.getElementById('zeroCount').textContent = zeroCount;
+      document.getElementById('message').textContent = '';
+      document.getElementById('settleBtn').style.display = 'none';
+      updateInventory();
+      updateSumArea();
+      document.querySelector('.roll').disabled = false;
+    }
+  </script>
+</body>
+</html>
